@@ -29,7 +29,11 @@ COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", "family_offices")
 
 # OpenRouter (for FO classification)
 OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "anthropic/claude-3-5-haiku-20241022")
+OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "anthropic/claude-haiku-4.5")
+
+# Google Custom Search (for LinkedIn discovery)
+GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+GOOGLE_CX: str = os.getenv("GOOGLE_CX", "")
 
 # Models
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
@@ -42,6 +46,10 @@ TOP_K: int = int(os.getenv("TOP_K", "5"))
 # Discovery
 MAX_CANDIDATES: int = 150
 TARGET_RECORDS: int = 50
+
+# Pipeline intermediate files
+PIPELINE_DIR = DATA_DIR / "pipeline"
+PIPELINE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Rate limits
 REQUEST_DELAY: float = 1.0  # seconds between web requests

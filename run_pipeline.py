@@ -8,6 +8,7 @@ Usage:
 
 import sys
 import json
+import time
 import logging
 from pathlib import Path
 
@@ -46,10 +47,17 @@ def main():
 
     def _save_incremental(record, all_records):
         """Validate + export after every new record so progress is never lost."""
-        cleaned = validate_records(list(all_records))  # dedup, clean, sort
-        export_to_xlsx(cleaned, xlsx_path)
+        cleaned = validate_records(list(all_records))
+        # CSV is never locked by Excel, so always succeeds
         export_to_csv(cleaned, csv_path)
-        logger.info(f"  >> Saved {len(cleaned)} records to {xlsx_path.name}")
+        try:
+            export_to_xlsx(cleaned, xlsx_path)
+            logger.info(f"  >> Saved {len(cleaned)} records to {xlsx_path.name}")
+        except PermissionError:
+            logger.warning(
+                f"  >> XLSX locked (open in Excel?) — skipped incremental save. "
+                f"CSV still updated ({csv_path.name})."
+            )
 
     enriched = run_enrichment(
         candidates,
@@ -69,10 +77,27 @@ def main():
 
     # ── Step 4: Final export (top-50, sorted by confidence) ────────
     logger.info("\n>>> STEP 4: FINAL EXPORT")
-    export_to_xlsx(final_records, xlsx_path)
     export_to_csv(final_records, csv_path)
-    logger.info(f"Exported to: {xlsx_path}")
     logger.info(f"Exported to: {csv_path}")
+
+    # XLSX may be locked by Excel — retry up to 5 times
+    for attempt in range(1, 6):
+        try:
+            export_to_xlsx(final_records, xlsx_path)
+            logger.info(f"Exported to: {xlsx_path}")
+            break
+        except PermissionError:
+            if attempt < 5:
+                logger.warning(
+                    f"XLSX locked by another process — retry {attempt}/5 in 3s "
+                    f"(close the file in Excel to fix)"
+                )
+                time.sleep(3)
+            else:
+                logger.error(
+                    f"Could not write XLSX after 5 attempts — file is locked. "
+                    f"Close it in Excel and re-run, or use the CSV at {csv_path}"
+                )
 
     # Save stats
     stats = generate_stats(final_records)
