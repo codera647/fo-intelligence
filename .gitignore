@@ -18,6 +18,7 @@ env/
 .venv/
 
 # Data (raw/intermediate — final dataset IS committed)
+data/pipeline/
 data/processed/
 data/raw/
 data/intermediate/
