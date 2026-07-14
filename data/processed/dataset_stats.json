@@ -1,0 +1,54 @@
+{
+  "total_records": 50,
+  "avg_completeness": 77.4,
+  "avg_confidence": 89.8,
+  "field_coverage": {
+    "family_office_name": 100.0,
+    "entity_type": 100.0,
+    "description": 100.0,
+    "year_founded": 100.0,
+    "aum_estimated": 50.0,
+    "aum_source": 50.0,
+    "investment_thesis": 100.0,
+    "investing_sectors": 100.0,
+    "website_url": 100.0,
+    "url_quality": 100.0,
+    "corporate_linkedin_url": 100.0,
+    "hq_city": 100.0,
+    "hq_state": 100.0,
+    "hq_country": 100.0,
+    "contact_name": 100.0,
+    "contact_title": 100.0,
+    "contact_linkedin": 18.0,
+    "contact_email": 26.0,
+    "email_confidence": 100.0,
+    "email_source": 26.0,
+    "recent_activity": 92.0,
+    "activity_date": 44.0,
+    "activity_source_url": 44.0,
+    "key_investments": 46.0,
+    "data_completeness_score": 100.0,
+    "confidence_score": 100.0
+  },
+  "entity_types": {
+    "Single Family Office": 30,
+    "Multi Family Office": 14,
+    "Hybrid": 6
+  },
+  "url_quality_dist": {
+    "Highest": 41,
+    "Not Found": 5,
+    "Medium-Low": 3,
+    "Lower": 1
+  },
+  "email_confidence_dist": {
+    "Not Found": 37,
+    "Verified": 7,
+    "High": 5,
+    "Medium": 1
+  },
+  "records_with_website": 50,
+  "records_with_contact": 50,
+  "records_with_email": 13,
+  "records_with_linkedin": 9
+}
