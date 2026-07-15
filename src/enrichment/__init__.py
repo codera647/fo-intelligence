@@ -1,3 +1,5 @@
-from .enrichment_pipeline import run_enrichment
-from .website_scraper import scrape_website, check_url_status
-from .llm_extractor import extract_from_website, enrich_with_llm
+"""Enrichment package (staged pipeline).
+
+Modules are imported directly by the stage runners (run_enrichment.py,
+run_contact_search.py, run_enrichment_boost.py), so nothing is re-exported here.
+"""
