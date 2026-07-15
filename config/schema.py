@@ -1,4 +1,4 @@
-"""28-column Family Office schema — Pydantic models + constants."""
+"""30-column Family Office schema — Pydantic models + constants."""
 
 from typing import Optional, List
 from pydantic import BaseModel, Field
@@ -31,9 +31,9 @@ class EmailConfidence(str, Enum):
 
 # ── main schema ────────────────────────────────────────────────────
 class FamilyOfficeRecord(BaseModel):
-    """One row in the final 50-record dataset — 28 columns across 4 tiers."""
+    """One row in the final 50-record dataset — 30 columns across 4 tiers."""
 
-    # ── Tier 1: Entity Core (16) ───────────────────────────────────
+    # ── Tier 1: Entity Core (18) ───────────────────────────────────
     family_office_name: str = Field(..., description="Official entity name")
     entity_type: str = Field(default="Unknown", description="SFO / MFO / Hybrid")
     description: Optional[str] = Field(None, description="1-2 sentence summary")
@@ -44,8 +44,10 @@ class FamilyOfficeRecord(BaseModel):
     investing_sectors: Optional[str] = Field(None, description="Comma-separated sectors")
     website_url: Optional[str] = Field(None, description="Primary website")
     url_quality: str = Field(default="Not Found", description="Highest/Medium/Medium-Low/Lower/Not Found")
-    corporate_linkedin_url: Optional[str] = Field(None, description="Company LinkedIn page")
+    corporate_linkedin: Optional[str] = Field(None, description="Company LinkedIn page")
+    linkedin_source: Optional[str] = Field(None, description="How LinkedIn URL was found")
     corporate_email: Optional[str] = Field(None, description="Company email (info@, contact@, etc.)")
+    corp_email_source: Optional[str] = Field(None, description="How corporate email was found")
     other_socials: Optional[str] = Field(None, description="Twitter, Instagram, Facebook URLs (pipe-separated)")
     hq_city: Optional[str] = Field(None, description="Headquarters city")
     hq_state: Optional[str] = Field(None, description="Headquarters state/province")
@@ -75,8 +77,8 @@ COLUMN_ORDER: List[str] = [
     # Tier 1
     "family_office_name", "entity_type", "description", "year_founded",
     "aum_estimated", "aum_source", "investment_thesis", "investing_sectors",
-    "website_url", "url_quality", "corporate_linkedin_url",
-    "corporate_email", "other_socials",
+    "website_url", "url_quality", "corporate_linkedin", "linkedin_source",
+    "corporate_email", "corp_email_source", "other_socials",
     "hq_city", "hq_state", "hq_country",
     # Tier 2
     "contact_name", "contact_title", "contact_linkedin", "contact_email",

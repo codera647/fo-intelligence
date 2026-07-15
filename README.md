@@ -39,19 +39,19 @@ Web Interface (React + Tailwind CSS)
 
 ## Dataset Schema (30 Columns)
 
-**Tier 1 — Entity Core (14):** family_office_name, entity_type, description, year_founded, aum_estimated, aum_source, investment_thesis, investing_sectors, website_url, url_quality, corporate_linkedin_url, hq_city, hq_state, hq_country
+**Tier 1 — Entity Core (18):** family_office_name, entity_type, description, year_founded, aum_estimated, aum_source, investment_thesis, investing_sectors, website_url, url_quality, corporate_linkedin, linkedin_source, corporate_email, corp_email_source, other_socials, hq_city, hq_state, hq_country
 
-**Tier 2 — Principal Intelligence (8):** contact_name, contact_title, contact_linkedin, contact_email, email_confidence, email_source, contact_phone, phone_source
+**Tier 2 — Principal Intelligence (6):** contact_name, contact_title, contact_linkedin, contact_email, email_confidence, email_source
 
 **Tier 3 — Entity Signals (4):** recent_activity, activity_date, activity_source_url, key_investments
 
-**Tier 4 — Data Quality (4):** data_completeness_score, confidence_score, primary_sources, verification_notes
+**Tier 4 — Data Quality (2):** completeness_score, confidence_score
 
 ## Quick Start
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/YOUR_USERNAME/fo-intelligence.git
+git clone https://github.com/codera647/fo-intelligence.git
 cd fo-intelligence
 pip install -r requirements.txt
 
@@ -96,7 +96,7 @@ This approach is optimal for 50 records — BM25 adds complexity without benefit
 fo-intelligence/
 ├── config/
 │   ├── settings.py      # Environment config
-│   ├── schema.py        # 30-column Pydantic model
+│   ├── schema.py        # 30-column Pydantic schema
 │   └── prompts.py       # LLM prompt templates
 ├── src/
 │   ├── discovery/       # Multi-channel FO discovery
