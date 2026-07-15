@@ -31,9 +31,12 @@ COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", "family_offices")
 OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "anthropic/claude-haiku-4.5")
 
-# Google Custom Search (for LinkedIn discovery)
+# Google Custom Search (for LinkedIn discovery) — legacy, kept for reference
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 GOOGLE_CX: str = os.getenv("GOOGLE_CX", "")
+
+# Tavily Search API (primary search backend for Stage 4)
+TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
 
 # Models
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
