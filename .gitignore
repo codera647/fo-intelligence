@@ -12,6 +12,8 @@ venv/
 data/processed
 data/pipeline/
 data/raw/
+assets
+deliverables
 
 # Backups
 *.backup.json
