@@ -1,53 +1,51 @@
 {
-  "total_records": 30,
-  "avg_completeness": 67.6,
-  "avg_confidence": 80.2,
+  "total_records": 50,
+  "avg_completeness": 85.1,
+  "avg_confidence": 86.7,
   "field_coverage": {
     "family_office_name": 100.0,
-    "entity_type": 100.0,
+    "entity_type": 80.0,
     "description": 100.0,
-    "year_founded": 83.3,
-    "aum_estimated": 40.0,
-    "aum_source": 40.0,
+    "year_founded": 62.0,
+    "aum_estimated": 96.0,
+    "aum_source": 100.0,
     "investment_thesis": 100.0,
     "investing_sectors": 100.0,
     "website_url": 100.0,
     "url_quality": 100.0,
-    "corporate_linkedin_url": 80.0,
-    "corporate_email": 0.0,
-    "other_socials": 0.0,
+    "corporate_linkedin_url": 100.0,
+    "corporate_email": 52.0,
+    "other_socials": 52.0,
     "hq_city": 100.0,
     "hq_state": 100.0,
-    "hq_country": 100.0,
-    "contact_name": 86.7,
-    "contact_title": 86.7,
-    "contact_linkedin": 20.0,
-    "contact_email": 33.3,
+    "hq_country": 94.0,
+    "contact_name": 100.0,
+    "contact_title": 98.0,
+    "contact_linkedin": 100.0,
+    "contact_email": 100.0,
     "email_confidence": 100.0,
-    "email_source": 33.3,
-    "recent_activity": 80.0,
-    "activity_date": 36.7,
-    "activity_source_url": 36.7,
-    "key_investments": 36.7,
+    "email_source": 100.0,
+    "recent_activity": 90.0,
+    "activity_date": 32.0,
+    "activity_source_url": 90.0,
+    "key_investments": 38.0,
     "data_completeness_score": 100.0,
     "confidence_score": 100.0
   },
   "entity_types": {
-    "Single Family Office": 21,
-    "Multi Family Office": 8,
-    "Hybrid": 1
+    "Single Family Office": 35,
+    "Hybrid": 1,
+    "Multi Family Office": 4
   },
   "url_quality_dist": {
-    "Highest": 20,
-    "Not Found": 10
+    "Highest": 50
   },
   "email_confidence_dist": {
-    "Not Found": 20,
-    "Verified": 7,
-    "High": 3
+    "High": 24,
+    "Medium": 26
   },
-  "records_with_website": 30,
-  "records_with_contact": 26,
-  "records_with_email": 10,
-  "records_with_linkedin": 6
+  "records_with_website": 50,
+  "records_with_contact": 50,
+  "records_with_email": 50,
+  "records_with_linkedin": 50
 }

@@ -236,7 +236,7 @@ def extract_fo_intelligence(fo_record: dict, crawled_text: str) -> dict:
 
 
 def _merge_structured_markers(enriched: dict, crawled_text: str):
-    """Extract data from the website_scraper's structured markers.
+    """Extract data from the website_crawler's structured markers.
 
     The BFS crawler embeds markers like:
       === EXTRACTED_EMAILS ===

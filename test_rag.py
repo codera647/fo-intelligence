@@ -17,7 +17,7 @@ def main():
     print(f"{'='*60}\n")
 
     if not records:
-        print("ERROR: No records found in Qdrant. Run run_pipeline.py first.")
+        print("ERROR: No records found in Qdrant. Run run_indexing.py first.")
         return
 
     # Test queries

@@ -130,6 +130,23 @@ def _sanitize_single_line(value) -> str:
     return s
 
 
+# Leading characters that spreadsheet apps (Excel/Sheets) treat as a formula.
+# Crawled/LLM-derived text is untrusted, so neutralize these to prevent CSV
+# formula injection (e.g. "=HYPERLINK(...)", "=cmd|'...'!A1", "@SUM(...)").
+_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _neutralize_formula(value):
+    """Prefix a leading formula trigger with a single quote so the cell stays text.
+
+    Only touches strings that begin with a dangerous character; all other
+    values (numbers, None, safe strings) pass through unchanged.
+    """
+    if isinstance(value, str) and value and value[0] in _FORMULA_TRIGGERS:
+        return "'" + value
+    return value
+
+
 def _get_tier_fill(col: str) -> PatternFill:
     """Return the header fill colour for a column based on its tier."""
     if col in TIER1_COLS:
@@ -219,9 +236,10 @@ def export_to_xlsx(records: list[dict], filepath: Path = None) -> Path:
                 cell = ws.cell(row=row_idx, column=col_idx)
                 col_name = COLUMN_ORDER[col_idx - 1]
 
-                # Sanitize value
+                # Sanitize value + neutralize spreadsheet formula injection.
+                # (openpyxl treats a str starting with "=" as a live formula.)
                 if cell.value is not None:
-                    cell.value = _sanitize_single_line(cell.value)
+                    cell.value = _neutralize_formula(_sanitize_single_line(cell.value))
 
                 # Font
                 if col_name == "family_office_name":
@@ -303,9 +321,11 @@ def export_to_csv(records: list[dict], filepath: Path = None) -> Path:
             df[col] = None
     df = df[COLUMN_ORDER]
 
-    # Sanitize all string values
+    # Sanitize all string values + neutralize spreadsheet formula injection
     for col in df.columns:
-        df[col] = df[col].apply(lambda v: _sanitize_single_line(v) if isinstance(v, str) else v)
+        df[col] = df[col].apply(
+            lambda v: _neutralize_formula(_sanitize_single_line(v)) if isinstance(v, str) else v
+        )
 
     df.to_csv(filepath, index=False)
     logger.info(f"Exported {len(records)} records → {filepath}")
