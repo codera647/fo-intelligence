@@ -51,7 +51,11 @@ def query_rag(
 
 
 def _format_records_for_context(records: List[Dict]) -> str:
-    """Format retrieved records into context string for the LLM."""
+    """Format retrieved records into a compact context string for the LLM.
+
+    Only passes the fields the LLM needs to write concise summaries —
+    full details are available in the Explorer page.
+    """
     parts = []
 
     for i, record in enumerate(records, 1):
@@ -62,42 +66,45 @@ def _format_records_for_context(records: List[Dict]) -> str:
             lines.append(f"Type: {record['entity_type']}")
         if record.get("aum_estimated"):
             lines.append(f"AUM: {record['aum_estimated']}")
-        if record.get("investment_thesis"):
-            lines.append(f"Investment Thesis: {record['investment_thesis']}")
         if record.get("investing_sectors"):
             lines.append(f"Sectors: {record['investing_sectors']}")
 
-        location_parts = [p for p in [record.get("hq_city"), record.get("hq_state"), record.get("hq_country")] if p]
+        location_parts = [p for p in [record.get("hq_city"), record.get("hq_country")] if p]
         if location_parts:
             lines.append(f"Location: {', '.join(location_parts)}")
 
-        if record.get("contact_name"):
-            contact = record["contact_name"]
-            if record.get("contact_title"):
-                contact += f" ({record['contact_title']})"
-            lines.append(f"Contact: {contact}")
-
-        if record.get("contact_email"):
-            lines.append(f"Email: {record['contact_email']}")
+        if record.get("investment_thesis"):
+            lines.append(f"Thesis: {record['investment_thesis']}")
         if record.get("recent_activity"):
             lines.append(f"Recent Activity: {record['recent_activity']}")
         if record.get("key_investments"):
             lines.append(f"Key Investments: {record['key_investments']}")
-        if record.get("website_url"):
-            lines.append(f"Website: {record['website_url']}")
 
         lines.append(f"Confidence: {record.get('confidence_score', 'N/A')}%")
-        lines.append(f"Completeness: {record.get('data_completeness_score', 'N/A')}%")
 
         parts.append("\n".join(lines))
 
     return "\n\n".join(parts)
 
 
+def _calculate_max_tokens(total_records: int) -> int:
+    """Dynamically calculate max_tokens based on retrieved record count.
+
+    Budget: ~200 tokens per record summary (2-3 lines each)
+           + 300 tokens for intro + key takeaway + formatting overhead.
+    Clamped between 600 (minimum useful) and 4096 (model ceiling).
+    """
+    tokens = 300 + (total_records * 200)
+    return max(600, min(tokens, 4096))
+
+
 def _generate_answer(question: str, context: str, total_records: int) -> str:
     """Use LLM to generate a natural language answer from context."""
     system_msg = RAG_SYSTEM_PROMPT.format(total_records=total_records)
     user_msg = RAG_QUERY_PROMPT.format(context=context, question=question)
+    max_tokens = _calculate_max_tokens(total_records)
+
+    logger.info(f"RAG generation: {total_records} records → {max_tokens} max_tokens")
 
     try:
         response = client.chat.completions.create(
@@ -107,7 +114,7 @@ def _generate_answer(question: str, context: str, total_records: int) -> str:
                 {"role": "user", "content": user_msg},
             ],
             temperature=0.3,
-            max_tokens=1500,
+            max_tokens=max_tokens,
         )
 
         return response.choices[0].message.content.strip()

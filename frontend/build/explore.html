@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FO Intelligence — Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            nyanza: { DEFAULT: '#ECFFDC', 50: '#f7fff0', 100: '#ECFFDC', 200: '#d4f5c0', 300: '#b0e89a' },
+            hunter: { DEFAULT: '#355E3B', light: '#4a7c59', dark: '#2a4a30', darker: '#1a2e23' },
+            sage: { DEFAULT: '#7a9485', light: '#a3bfaf', dark: '#5a7366' },
+          },
+          fontFamily: { jakarta: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+        },
+      },
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #ECFFDC; margin: 0; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #b0e89a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #7a9485; }
+
+    /* Animations */
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    @keyframes navUnderline { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    .anim-fade-slide { animation: fadeSlideUp 0.35s ease-out both; }
+    .anim-fade { animation: fadeIn 0.3s ease-out both; }
+    .anim-scale { animation: scaleIn 0.3s ease-out both; }
+
+    /* Nav link hover */
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px;
+      background: #ECFFDC; transform: scaleX(0); transform-origin: right; transition: transform 0.3s ease;
+    }
+    .nav-link:hover::after, .nav-link.active::after { transform: scaleX(1); transform-origin: left; }
+
+    /* Card hover */
+    .card-hover { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(53,94,59,0.12); }
+
+    /* Table */
+    table { border-collapse: separate; border-spacing: 0; }
+    thead th { position: sticky; top: 0; z-index: 10; background: #f7fff0; }
+    tbody tr { transition: background 0.15s ease; }
+    tbody tr:hover { background: rgba(53,94,59,0.04); }
+
+    /* Score pill */
+    .score-high { background: rgba(34,197,94,0.1); color: #16a34a; }
+    .score-mid { background: rgba(234,179,8,0.1); color: #ca8a04; }
+    .score-low { background: rgba(239,68,68,0.1); color: #dc2626; }
+
+    /* Type badges */
+    .badge-sfo { background: rgba(59,130,246,0.08); color: #2563eb; border: 1px solid rgba(59,130,246,0.15); }
+    .badge-mfo { background: rgba(147,51,234,0.08); color: #7c3aed; border: 1px solid rgba(147,51,234,0.15); }
+    .badge-hybrid { background: rgba(234,179,8,0.08); color: #b45309; border: 1px solid rgba(234,179,8,0.15); }
+
+    /* Filter select */
+    select, .filter-input {
+      background: white; border: 1px solid rgba(53,94,59,0.15); color: #1a2e23; border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem; font-size: 0.75rem; transition: all 0.2s ease; width: 100%;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    select:focus, .filter-input:focus {
+      outline: none; box-shadow: 0 0 0 3px rgba(53,94,59,0.12); border-color: #355E3B;
+    }
+    select:hover, .filter-input:hover { border-color: #355E3B; }
+
+    /* View button */
+    .view-btn {
+      background: rgba(53,94,59,0.08); color: #355E3B; border: 1px solid rgba(53,94,59,0.15);
+      padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .view-btn:hover { background: #355E3B; color: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(53,94,59,0.25); }
+
+    /* Modal */
+    .modal-overlay { animation: fadeIn 0.2s ease-out; }
+    .modal-card { animation: scaleIn 0.3s ease-out; }
+
+    /* Clear button */
+    .clear-btn { transition: all 0.2s ease; }
+    .clear-btn:hover { background: #355E3B; color: white; }
+
+    /* Link styling */
+    .data-link { color: #355E3B; text-decoration: none; transition: color 0.15s; }
+    .data-link:hover { color: #2a4a30; text-decoration: underline; }
+
+    /* Sortable header */
+    .sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
+    .sortable:hover { color: #355E3B; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+const API = window.location.origin;
+
+/* ─── Helpers ────────────────────────────────────────────── */
+function parseAUM(aum) {
+  if (!aum || typeof aum !== 'string') return 0;
+  var m = aum.match(/\$([\d,.]+)\s*(T|B|M|K)?/i);
+  if (!m) return 0;
+  var num = parseFloat(m[1].replace(/,/g, ''));
+  var unit = (m[2] || '').toUpperCase();
+  if (unit === 'T') return num * 1000;
+  if (unit === 'B') return num;
+  if (unit === 'M') return num / 1000;
+  if (unit === 'K') return num / 1000000;
+  return num;
+}
+
+function scorePill(val) {
+  const n = parseFloat(val) || 0;
+  const cls = n >= 90 ? 'score-high' : n >= 80 ? 'score-mid' : 'score-low';
+  return { cls, val: n.toFixed(1) + '%' };
+}
+
+function typeBadge(t) {
+  if (!t) return { cls: 'badge-hybrid', label: '—' };
+  if (t.includes('Single')) return { cls: 'badge-sfo', label: 'SFO' };
+  if (t.includes('Multi')) return { cls: 'badge-mfo', label: 'MFO' };
+  return { cls: 'badge-hybrid', label: t };
+}
+
+/* ─── Navbar ─────────────────────────────────────────────── */
+function Navbar({ recordCount, totalCount }) {
+  return (
+    <header className="sticky top-0 z-40 bg-hunter-darker shadow-lg shadow-hunter-darker/20">
+      <div className="max-w-[1400px] mx-auto px-5 h-14 flex items-center justify-between">
+        <a href="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg bg-hunter flex items-center justify-center text-white font-bold text-xs
+                          transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">FO</div>
+          <div>
+            <span className="text-white font-bold text-sm tracking-tight">FO Explorer</span>
+            <span className="hidden sm:block text-[10px] text-sage-light/60 font-medium">Browse & Filter Dataset</span>
+          </div>
+        </a>
+        <nav className="flex items-center gap-6">
+          <a href="/" className="nav-link text-sage-light/70 hover:text-white text-xs font-semibold tracking-wide uppercase transition-colors">Chat</a>
+          <a href="/explore.html" className="nav-link active text-white text-xs font-semibold tracking-wide uppercase">Explorer</a>
+          <div className="ml-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur">
+            <span className="text-[10px] text-white/80 font-semibold">{recordCount} / {totalCount} records</span>
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/* ─── Filter Bar ─────────────────────────────────────────── */
+function FilterBar({ filters, onChange, onClear, countries, sectors }) {
+  const handleChange = (key, val) => onChange({ ...filters, [key]: val });
+
+  return (
+    <div className="bg-white rounded-xl border border-hunter/8 p-4 mb-5 anim-fade-slide shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-hunter" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <h2 className="text-[10px] font-bold text-hunter-darker uppercase tracking-widest">Filters</h2>
+        </div>
+        <button onClick={onClear} className="clear-btn text-[10px] px-3 py-1 rounded-lg bg-nyanza text-sage font-semibold">Clear All</button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div>
+          <label className="text-[9px] text-sage font-bold uppercase tracking-widest mb-1 block">Entity Type</label>
+          <select value={filters.type} onChange={(e) => handleChange('type', e.target.value)}>
+            <option value="">All Types</option>
+            <option value="Single Family Office">Single Family Office</option>
+            <option value="Multi Family Office">Multi Family Office</option>
+            <option value="Hybrid">Hybrid</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[9px] text-sage font-bold uppercase tracking-widest mb-1 block">Country</label>
+          <select value={filters.country} onChange={(e) => handleChange('country', e.target.value)}>
+            <option value="">All Countries</option>
+            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-[9px] text-sage font-bold uppercase tracking-widest mb-1 block">Sector</label>
+          <select value={filters.sector} onChange={(e) => handleChange('sector', e.target.value)}>
+            <option value="">All Sectors</option>
+            {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-[9px] text-sage font-bold uppercase tracking-widest mb-1 block">Min AUM</label>
+          <select value={filters.aum} onChange={(e) => handleChange('aum', e.target.value)}>
+            <option value="">Any AUM</option>
+            <option value="1">$1B+</option>
+            <option value="5">$5B+</option>
+            <option value="10">$10B+</option>
+            <option value="50">$50B+</option>
+            <option value="100">$100B+</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[9px] text-sage font-bold uppercase tracking-widest mb-1 block">Min Confidence</label>
+          <select value={filters.conf} onChange={(e) => handleChange('conf', e.target.value)}>
+            <option value="">Any</option>
+            <option value="90">90%+</option>
+            <option value="85">85%+</option>
+            <option value="80">80%+</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[9px] text-sage font-bold uppercase tracking-widest mb-1 block">Search</label>
+          <input type="text" value={filters.search} onChange={(e) => handleChange('search', e.target.value)}
+            placeholder="Name, contact..." className="filter-input" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Detail Modal ───────────────────────────────────────── */
+function DetailModal({ record, onClose }) {
+  const r = record;
+  if (!r) return null;
+
+  const fields = [
+    ['Family Office', r.family_office_name],
+    ['Type', r.entity_type],
+    ['Description', r.description],
+    ['AUM', r.aum_estimated],
+    ['AUM Source', r.aum_source],
+    ['Founded', r.year_founded],
+    ['Investment Thesis', r.investment_thesis],
+    ['Sectors', r.investing_sectors],
+    ['Website', r.website_url, true],
+    ['LinkedIn', r.corporate_linkedin_url, true],
+    ['LinkedIn Source', r.linkedin_source],
+    ['Corporate Email', r.corporate_email],
+    ['Email Source', r.corp_email_source],
+    ['Other Socials', r.other_socials],
+    ['Location', [r.hq_city, r.hq_state, r.hq_country].filter(Boolean).join(', ')],
+    ['Contact', r.contact_name],
+    ['Title', r.contact_title],
+    ['Contact LinkedIn', r.contact_linkedin, true],
+    ['Contact Email', r.contact_email],
+    ['Email Confidence', r.email_confidence],
+    ['Email Source', r.email_source],
+    ['Recent Activity', r.recent_activity],
+    ['Activity Date', r.activity_date],
+    ['Activity Source', r.activity_source_url, true],
+    ['Key Investments', r.key_investments],
+    ['Confidence', r.confidence_score ? r.confidence_score + '%' : ''],
+    ['Completeness', r.data_completeness_score ? r.data_completeness_score + '%' : ''],
+  ].filter(f => f[1]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 modal-overlay p-4"
+         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-card bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto border border-hunter/10">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-extrabold text-hunter-darker">{r.family_office_name || 'Unknown'}</h2>
+            {r.entity_type && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-hunter bg-nyanza px-2 py-0.5 rounded-full mt-1 inline-block">
+                {r.entity_type}
+              </span>
+            )}
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-nyanza hover:bg-hunter hover:text-white text-hunter-dark flex items-center justify-center transition-all text-lg font-bold">
+            &times;
+          </button>
+        </div>
+        <div className="space-y-2">
+          {fields.map((f, i) => (
+            <div key={i} className="flex gap-3 py-1.5 border-b border-nyanza-200/60 last:border-0">
+              <span className="text-[11px] text-sage font-semibold min-w-[110px] flex-shrink-0 uppercase tracking-wider">{f[0]}</span>
+              {f[2] ? (
+                <a href={f[1]} target="_blank" rel="noopener" className="data-link text-xs break-all">{f[1]}</a>
+              ) : (
+                <span className="text-hunter-darker text-xs leading-relaxed">{f[1]}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        {(r.confidence_score || r.data_completeness_score) && (
+          <div className="mt-5 pt-4 border-t border-nyanza-200 grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold mb-1">
+                <span className="text-sage">Confidence</span><span className="text-hunter">{r.confidence_score || 0}%</span>
+              </div>
+              <div className="h-2 bg-nyanza rounded-full overflow-hidden">
+                <div className="h-full bg-hunter rounded-full transition-all duration-700" style={{ width: `${r.confidence_score || 0}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold mb-1">
+                <span className="text-sage">Completeness</span><span className="text-emerald-600">{r.data_completeness_score || 0}%</span>
+              </div>
+              <div className="h-2 bg-nyanza rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${r.data_completeness_score || 0}%` }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Data Table ─────────────────────────────────────────── */
+function DataTable({ records, onSort, sortKey, sortAsc, onViewDetail }) {
+  const arrow = (key) => sortKey === key ? (sortAsc ? ' ↑' : ' ↓') : ' ↕';
+
+  return (
+    <div className="bg-white rounded-xl border border-hunter/8 overflow-hidden shadow-sm anim-fade-slide" style={{ animationDelay: '0.1s' }}>
+      <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 240px)' }}>
+        <table className="w-full text-left">
+          <thead>
+            <tr className="text-[9px] text-sage font-bold uppercase tracking-widest border-b border-nyanza-200">
+              <th className="py-3 px-3 w-8">#</th>
+              <th className="py-3 px-3 sortable" onClick={() => onSort('family_office_name')}>Name{arrow('family_office_name')}</th>
+              <th className="py-3 px-3">Type</th>
+              <th className="py-3 px-3 sortable" onClick={() => onSort('aum_num')}>AUM{arrow('aum_num')}</th>
+              <th className="py-3 px-3">Sectors</th>
+              <th className="py-3 px-3">Location</th>
+              <th className="py-3 px-3">Contact</th>
+              <th className="py-3 px-3">Email</th>
+              <th className="py-3 px-3">LinkedIn</th>
+              <th className="py-3 px-3">Website</th>
+              <th className="py-3 px-3 sortable" onClick={() => onSort('confidence_score')}>Conf{arrow('confidence_score')}</th>
+              <th className="py-3 px-3 sortable" onClick={() => onSort('data_completeness_score')}>Comp{arrow('data_completeness_score')}</th>
+              <th className="py-3 px-3">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.length === 0 ? (
+              <tr><td colSpan="13" className="py-16 text-center text-sm text-sage">No records match your filters</td></tr>
+            ) : (
+              records.map((r, i) => {
+                const loc = [r.hq_city, r.hq_country].filter(Boolean).join(', ');
+                const sectors = (r.investing_sectors || '').substring(0, 40) + ((r.investing_sectors || '').length > 40 ? '...' : '');
+                const badge = typeBadge(r.entity_type);
+                const confPill = scorePill(r.confidence_score);
+                const compPill = scorePill(r.data_completeness_score);
+                const email = r.contact_email || r.corporate_email || '';
+                const emailShort = email ? email.split('@')[0] + '@...' : '';
+
+                return (
+                  <tr key={i} className="border-t border-nyanza-200/60">
+                    <td className="py-2.5 px-3 text-[10px] text-sage">{i + 1}</td>
+                    <td className="py-2.5 px-3 text-xs text-hunter-darker font-semibold max-w-[160px] truncate">{r.family_office_name || '—'}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-xs text-hunter-dark font-mono text-[11px]">{r.aum_estimated || '—'}</td>
+                    <td className="py-2.5 px-3 text-[10px] text-sage-dark max-w-[150px] truncate">{sectors || '—'}</td>
+                    <td className="py-2.5 px-3 text-xs text-hunter-dark">{loc || '—'}</td>
+                    <td className="py-2.5 px-3 text-xs text-hunter-darker max-w-[120px] truncate">{r.contact_name || '—'}</td>
+                    <td className="py-2.5 px-3">
+                      {emailShort ? <span className="text-[10px] text-hunter-light">{emailShort}</span> : <span className="text-sage/40">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {r.corporate_linkedin_url
+                        ? <a href={r.corporate_linkedin_url} target="_blank" rel="noopener" className="data-link text-[10px]">LinkedIn</a>
+                        : <span className="text-sage/40">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {r.website_url
+                        ? <a href={r.website_url} target="_blank" rel="noopener" className="data-link text-[10px]">
+                            {r.website_url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}
+                          </a>
+                        : <span className="text-sage/40">—</span>}
+                    </td>
+                    <td className="py-2.5 px-3"><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${confPill.cls}`}>{confPill.val}</span></td>
+                    <td className="py-2.5 px-3"><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${compPill.cls}`}>{compPill.val}</span></td>
+                    <td className="py-2.5 px-3">
+                      <button onClick={() => onViewDetail(r)} className="view-btn">View</button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Stat Card ─────────────────────────────────────────── */
+function StatCard({ label, value, icon, color, delay }) {
+  return (
+    <div className="bg-white rounded-xl p-4 border border-hunter/8 shadow-sm anim-fade-slide" style={{ animationDelay: delay }}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-lg">{icon}</span>
+        <span className="text-[10px] uppercase tracking-widest font-semibold text-sage">{label}</span>
+      </div>
+      <p className={`text-2xl font-extrabold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+/* ─── App ─────────────────────────────────────────────────── */
+function App() {
+  const [allRecords, setAllRecords] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ type: '', country: '', sector: '', aum: '', conf: '', search: '' });
+  const [sort, setSort] = useState({ key: 'family_office_name', asc: true });
+  const [selectedRecord, setSelectedRecord] = useState(null);
+
+  // Load stats
+  useEffect(() => {
+    fetch(API + '/api/stats').then(r => r.json()).then(setStats).catch(() => {});
+  }, []);
+
+  // Load records
+  useEffect(() => {
+    fetch(API + '/api/records?limit=50')
+      .then(r => r.json())
+      .then(d => {
+        const records = (d.records || []).map(r => ({ ...r, aum_num: parseAUM(r.aum_estimated) }));
+        setAllRecords(records);
+        setLoading(false);
+
+        // Check hash for deep-link
+        const hash = decodeURIComponent(window.location.hash.substring(1));
+        if (hash) {
+          const found = records.find(r => r.family_office_name === hash);
+          if (found) setSelectedRecord(found);
+        }
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // Escape to close modal
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setSelectedRecord(null); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  // Extract filter options
+  const { countries, sectors } = useMemo(() => {
+    const countrySet = new Set();
+    const sectorSet = new Set();
+    allRecords.forEach(r => {
+      if (r.hq_country) countrySet.add(r.hq_country);
+      if (r.investing_sectors) r.investing_sectors.split(',').forEach(s => { const t = s.trim(); if (t) sectorSet.add(t); });
+    });
+    return { countries: [...countrySet].sort(), sectors: [...sectorSet].sort() };
+  }, [allRecords]);
+
+  // Filtered + sorted records
+  const filteredRecords = useMemo(() => {
+    let result = allRecords.filter(r => {
+      if (filters.type && r.entity_type !== filters.type) return false;
+      if (filters.country && r.hq_country !== filters.country) return false;
+      if (filters.sector && !(r.investing_sectors || '').toLowerCase().includes(filters.sector.toLowerCase())) return false;
+      if (filters.aum && r.aum_num < parseFloat(filters.aum)) return false;
+      if (filters.conf && (parseFloat(r.confidence_score) || 0) < parseFloat(filters.conf)) return false;
+      if (filters.search) {
+        const hay = [r.family_office_name, r.contact_name, r.hq_city, r.hq_country, r.investing_sectors, r.description]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(filters.search.toLowerCase())) return false;
+      }
+      return true;
+    });
+
+    const { key, asc } = sort;
+    result.sort((a, b) => {
+      let va = a[key], vb = b[key];
+      if (typeof va === 'number' && typeof vb === 'number') return asc ? va - vb : vb - va;
+      va = (va || '').toString().toLowerCase();
+      vb = (vb || '').toString().toLowerCase();
+      return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+
+    return result;
+  }, [allRecords, filters, sort]);
+
+  const handleSort = (key) => {
+    setSort(prev => ({ key, asc: prev.key === key ? !prev.asc : true }));
+  };
+
+  const clearFilters = () => setFilters({ type: '', country: '', sector: '', aum: '', conf: '', search: '' });
+
+  return (
+    <div className="min-h-screen font-jakarta">
+      <Navbar recordCount={filteredRecords.length} totalCount={allRecords.length} />
+
+      <main className="max-w-[1400px] mx-auto px-5 py-5">
+        {/* Stats Row */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <StatCard label="Records" value={stats.total_records} icon="📊" color="text-hunter" delay="0.05s" />
+            <StatCard label="Confidence" value={stats.avg_confidence + '%'} icon="🎯" color="text-hunter-light" delay="0.1s" />
+            <StatCard label="Completeness" value={stats.avg_completeness + '%'} icon="✅" color="text-emerald-600" delay="0.15s" />
+            <StatCard label="Countries" value={Object.keys(stats.countries || {}).length} icon="🌍" color="text-hunter-dark" delay="0.2s" />
+          </div>
+        )}
+
+        <FilterBar filters={filters} onChange={setFilters} onClear={clearFilters} countries={countries} sectors={sectors} />
+
+        {loading ? (
+          <div className="bg-white rounded-xl border border-hunter/8 p-16 text-center shadow-sm">
+            <div className="inline-flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-hunter border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm text-sage font-medium">Loading records...</span>
+            </div>
+          </div>
+        ) : (
+          <DataTable
+            records={filteredRecords}
+            onSort={handleSort}
+            sortKey={sort.key}
+            sortAsc={sort.asc}
+            onViewDetail={setSelectedRecord}
+          />
+        )}
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-[10px] text-sage/50 font-medium">
+            7-Stage Pipeline · text-embedding-3-small · Qdrant Cloud · GPT-4o-mini · FastAPI
+          </p>
+          <p className="text-[10px] text-sage/35 mt-0.5">Built for Falcon Scaling × PolarityIQ Assessment</p>
+        </div>
+      </main>
+
+      {selectedRecord && <DetailModal record={selectedRecord} onClose={() => setSelectedRecord(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -90,4 +90,29 @@ def record_to_text(record: Dict) -> str:
     if record.get("year_founded"):
         parts.append(f"Founded: {record['year_founded']}")
 
+    if record.get("corporate_email"):
+        parts.append(f"Corporate Email: {record['corporate_email']}")
+
+    if record.get("corporate_linkedin_url"):
+        parts.append(f"Corporate LinkedIn: {record['corporate_linkedin_url']}")
+
+    if record.get("contact_email"):
+        parts.append(f"Contact Email: {record['contact_email']}")
+
+    if record.get("contact_linkedin"):
+        parts.append(f"Contact LinkedIn: {record['contact_linkedin']}")
+
+    # Source provenance (for RAG citation)
+    if record.get("aum_source"):
+        parts.append(f"AUM Source: {record['aum_source']}")
+
+    if record.get("linkedin_source"):
+        parts.append(f"LinkedIn Source: {record['linkedin_source']}")
+
+    if record.get("corp_email_source"):
+        parts.append(f"Email Source: {record['corp_email_source']}")
+
+    if record.get("email_source"):
+        parts.append(f"Contact Email Source: {record['email_source']}")
+
     return "\n".join(parts)

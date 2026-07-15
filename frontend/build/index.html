@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FO Intelligence — Family Office RAG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            nyanza: { DEFAULT: '#ECFFDC', 50: '#f7fff0', 100: '#ECFFDC', 200: '#d4f5c0', 300: '#b0e89a' },
+            hunter: { DEFAULT: '#355E3B', light: '#4a7c59', dark: '#2a4a30', darker: '#1a2e23' },
+            sage: { DEFAULT: '#7a9485', light: '#a3bfaf', dark: '#5a7366' },
+          },
+          fontFamily: { jakarta: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+        },
+      },
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #ECFFDC; margin: 0; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #b0e89a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #7a9485; }
+
+    /* Markdown rendering */
+    .md-content h3 { font-size: 1rem; font-weight: 700; color: #1a2e23; margin-top: 1.1rem; margin-bottom: 0.4rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(53,94,59,0.1); }
+    .md-content h3:first-child { margin-top: 0; }
+    .md-content strong { color: #355E3B; font-weight: 600; }
+    .md-content a { color: #355E3B; text-decoration: underline; text-underline-offset: 2px; }
+    .md-content a:hover { color: #2a4a30; }
+    .md-content ul { list-style: none; padding-left: 0; margin: 0.25rem 0; }
+    .md-content ul li { position: relative; padding-left: 1rem; margin-bottom: 0.2rem; font-size: 0.85rem; color: #4a6353; }
+    .md-content ul li::before { content: "›"; position: absolute; left: 0; color: #355E3B; font-weight: bold; }
+    .md-content p { margin: 0.4rem 0; font-size: 0.875rem; line-height: 1.65; color: #3a5443; }
+    .md-content hr { border: none; border-top: 1px solid rgba(53,94,59,0.08); margin: 0.6rem 0; }
+
+    /* Animations */
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes slideRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+    @keyframes pulse-dot { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes navUnderline { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    .anim-fade-slide { animation: fadeSlideUp 0.4s ease-out both; }
+    .anim-fade { animation: fadeIn 0.3s ease-out both; }
+    .anim-scale { animation: scaleIn 0.3s ease-out both; }
+    .anim-slide-right { animation: slideRight 0.35s ease-out both; }
+    .anim-slide-left { animation: slideLeft 0.35s ease-out both; }
+
+    /* Typing dots */
+    .typing-dot { width: 7px; height: 7px; border-radius: 50%; background: #355E3B; display: inline-block; animation: bounce 1.4s ease-in-out infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.16s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.32s; }
+
+    /* Nav link hover underline */
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px;
+      background: #ECFFDC; transform: scaleX(0); transform-origin: right; transition: transform 0.3s ease;
+    }
+    .nav-link:hover::after, .nav-link.active::after { transform: scaleX(1); transform-origin: left; }
+
+    /* Card hover */
+    .card-hover { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(53,94,59,0.12); }
+
+    /* Button hover */
+    .btn-primary {
+      background: #355E3B; color: white; transition: all 0.25s ease;
+    }
+    .btn-primary:hover { background: #2a4a30; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(53,94,59,0.3); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* Prompt chip hover */
+    .prompt-chip { transition: all 0.2s ease; border: 1px solid rgba(53,94,59,0.15); }
+    .prompt-chip:hover { background: #355E3B; color: white; border-color: #355E3B; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(53,94,59,0.2); }
+
+    /* Modal overlay */
+    .modal-overlay { animation: fadeIn 0.2s ease-out; }
+    .modal-card { animation: scaleIn 0.3s ease-out; }
+
+    /* Staggered children */
+    .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+    .stagger > *:nth-child(2) { animation-delay: 0.1s; }
+    .stagger > *:nth-child(3) { animation-delay: 0.15s; }
+    .stagger > *:nth-child(4) { animation-delay: 0.2s; }
+    .stagger > *:nth-child(5) { animation-delay: 0.25s; }
+    .stagger > *:nth-child(6) { animation-delay: 0.3s; }
+
+    /* Record cards scroll */
+    .records-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; }
+    .records-scroll > * { scroll-snap-align: start; min-width: 220px; max-width: 260px; flex-shrink: 0; }
+
+    /* Glass card for light theme */
+    .glass-light { background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(53,94,59,0.08); }
+
+    /* Input focus ring */
+    input:focus, textarea:focus { outline: none; box-shadow: 0 0 0 3px rgba(53,94,59,0.15); border-color: #355E3B; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+const API = window.location.origin;
+
+/* ─── Navbar ─────────────────────────────────────────────── */
+function Navbar({ health }) {
+  const dot = health === 'healthy'
+    ? 'bg-emerald-400' : health === 'connecting' ? 'bg-yellow-400 animate-pulse' : 'bg-red-400';
+  const label = health === 'healthy' ? 'API Live' : health === 'connecting' ? 'Connecting...' : 'Offline';
+
+  return (
+    <header className="sticky top-0 z-40 bg-hunter-darker shadow-lg shadow-hunter-darker/20">
+      <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
+        <a href="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg bg-hunter flex items-center justify-center text-white font-bold text-xs
+                          transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">FO</div>
+          <div>
+            <span className="text-white font-bold text-sm tracking-tight">FO Intelligence</span>
+            <span className="hidden sm:block text-[10px] text-sage-light/60 font-medium">Micro-RAG Pipeline</span>
+          </div>
+        </a>
+        <nav className="flex items-center gap-6">
+          <a href="/" className="nav-link active text-white text-xs font-semibold tracking-wide uppercase">Chat</a>
+          <a href="/explore.html" className="nav-link text-sage-light/70 hover:text-white text-xs font-semibold tracking-wide uppercase transition-colors">Explorer</a>
+          <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur">
+            <span className={`w-1.5 h-1.5 rounded-full ${dot}`}></span>
+            <span className="text-[10px] text-white/70 font-medium">{label}</span>
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/* ─── Stats Card ─────────────────────────────────────────── */
+function StatCard({ label, value, icon, color, delay }) {
+  return (
+    <div className="glass-light rounded-xl p-4 card-hover anim-fade-slide" style={{ animationDelay: delay }}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-lg">{icon}</span>
+        <span className="text-[10px] uppercase tracking-widest font-semibold text-sage">{label}</span>
+      </div>
+      <p className={`text-2xl font-extrabold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+/* ─── Welcome Screen ─────────────────────────────────────── */
+function WelcomeScreen({ stats, onPromptClick }) {
+  const prompts = [
+    { text: 'Family offices investing in technology and venture capital', label: 'Tech & VC Investors' },
+    { text: 'Large family offices with over $50 billion AUM', label: '$50B+ AUM' },
+    { text: 'European family offices focused on real estate', label: 'EU Real Estate' },
+    { text: 'Family offices with direct investment strategies', label: 'Direct Investment' },
+    { text: 'Multi family offices in the Middle East', label: 'Middle East MFOs' },
+    { text: 'Family offices investing in healthcare and biotech', label: 'Healthcare & Biotech' },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-5 py-12">
+      {/* Hero */}
+      <div className="text-center mb-10 anim-fade-slide">
+        <div className="w-16 h-16 rounded-2xl bg-hunter mx-auto mb-5 flex items-center justify-center shadow-lg shadow-hunter/20"
+             style={{ animation: 'float 3s ease-in-out infinite' }}>
+          <span className="text-white font-extrabold text-xl">FO</span>
+        </div>
+        <h2 className="text-3xl font-extrabold text-hunter-darker tracking-tight mb-2">Family Office Intelligence</h2>
+        <p className="text-sage text-sm max-w-md mx-auto leading-relaxed">
+          AI-powered discovery and analysis of 50 validated Family Office records.
+          Ask anything about investment strategies, AUM, locations, and sectors.
+        </p>
+      </div>
+
+      {/* Prompts */}
+      <div className="w-full max-w-2xl anim-fade-slide" style={{ animationDelay: '0.25s' }}>
+        <p className="text-xs font-semibold text-sage uppercase tracking-widest mb-3 text-center">Try asking</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {prompts.map((p, i) => (
+            <button key={i} onClick={() => onPromptClick(p.text)}
+              className="prompt-chip px-4 py-2 rounded-full bg-white text-hunter text-xs font-medium cursor-pointer">
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Pipeline info */}
+      <div className="mt-12 text-center anim-fade" style={{ animationDelay: '0.4s' }}>
+        <p className="text-[10px] text-sage/60 font-medium">
+          7-Stage Pipeline · text-embedding-3-small · Qdrant Cloud · GPT-4o-mini · FastAPI
+        </p>
+        <p className="text-[10px] text-sage/40 mt-1">Built for Falcon Scaling × PolarityIQ Assessment</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Typing Indicator ───────────────────────────────────── */
+function TypingIndicator() {
+  return (
+    <div className="flex gap-3 px-5 py-3 max-w-3xl mx-auto w-full anim-fade">
+      <div className="w-7 h-7 rounded-lg bg-hunter flex-shrink-0 flex items-center justify-center">
+        <span className="text-white text-[10px] font-bold">FO</span>
+      </div>
+      <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-hunter/5">
+        <div className="flex gap-1.5 items-center h-4">
+          <span className="typing-dot"></span>
+          <span className="typing-dot"></span>
+          <span className="typing-dot"></span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Record Card (in chat) ──────────────────────────────── */
+function RecordCard({ record, index, onClick }) {
+  const r = record;
+  const loc = [r.hq_city, r.hq_country].filter(Boolean).join(', ') || 'N/A';
+  const typeColor = (r.entity_type || '').includes('Single')
+    ? 'bg-blue-50 text-blue-700 border-blue-200'
+    : (r.entity_type || '').includes('Multi')
+    ? 'bg-purple-50 text-purple-700 border-purple-200'
+    : 'bg-gray-50 text-gray-600 border-gray-200';
+  const typeLabel = (r.entity_type || '').includes('Single') ? 'SFO'
+    : (r.entity_type || '').includes('Multi') ? 'MFO' : r.entity_type || '—';
+
+  return (
+    <div className="bg-white rounded-xl p-4 border border-hunter/8 card-hover cursor-pointer anim-fade-slide"
+         style={{ animationDelay: `${index * 0.05}s` }}
+         onClick={() => onClick(r)}>
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="font-bold text-hunter-darker text-xs leading-tight line-clamp-2">{r.family_office_name || 'Unknown'}</h4>
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ml-2 ${typeColor}`}>{typeLabel}</span>
+      </div>
+      <div className="space-y-1 text-[11px]">
+        <div className="flex justify-between">
+          <span className="text-sage">AUM</span>
+          <span className="text-hunter-darker font-semibold">{r.aum_estimated || 'N/A'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sage">Location</span>
+          <span className="text-hunter-dark">{loc}</span>
+        </div>
+        <div className="mt-2 h-1 bg-nyanza-200 rounded-full overflow-hidden">
+          <div className="h-full bg-hunter rounded-full transition-all duration-500"
+               style={{ width: `${r.confidence_score || 0}%` }}></div>
+        </div>
+        <div className="flex justify-between text-[9px]">
+          <span className="text-sage">Confidence</span>
+          <span className="text-hunter font-semibold">{r.confidence_score || 0}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Chat Message ───────────────────────────────────────── */
+function ChatMessage({ message, onViewDetail }) {
+  const isUser = message.role === 'user';
+  const timeStr = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (isUser) {
+    return (
+      <div className="flex justify-end px-5 py-2 max-w-3xl mx-auto w-full anim-slide-right">
+        <div className="max-w-[80%]">
+          <div className="bg-hunter text-white rounded-2xl rounded-tr-sm px-4 py-3 shadow-md shadow-hunter/15">
+            <p className="text-sm leading-relaxed">{message.content}</p>
+          </div>
+          <p className="text-[10px] text-sage/60 mt-1 text-right">{timeStr}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 py-2 max-w-3xl mx-auto w-full anim-slide-left">
+      <div className="flex gap-3">
+        <div className="w-7 h-7 rounded-lg bg-hunter flex-shrink-0 flex items-center justify-center mt-0.5">
+          <span className="text-white text-[10px] font-bold">FO</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="bg-white rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm border border-hunter/5">
+            {message.error ? (
+              <p className="text-red-600 text-sm">{message.content}</p>
+            ) : (
+              <div className="md-content text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(message.content || '') }}></div>
+            )}
+          </div>
+
+          {/* Retrieved records */}
+          {message.records && message.records.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold text-sage uppercase tracking-widest mb-2">
+                {message.records.length} records retrieved
+              </p>
+              <div className="records-scroll">
+                {message.records.map((r, i) => (
+                  <RecordCard key={i} record={r} index={i} onClick={onViewDetail} />
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-sage/60 mt-1">{timeStr}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Detail Modal ───────────────────────────────────────── */
+function DetailModal({ record, onClose }) {
+  const r = record;
+  if (!r) return null;
+
+  const fields = [
+    ['Family Office', r.family_office_name],
+    ['Type', r.entity_type],
+    ['Description', r.description],
+    ['AUM', r.aum_estimated],
+    ['AUM Source', r.aum_source],
+    ['Founded', r.year_founded],
+    ['Investment Thesis', r.investment_thesis],
+    ['Sectors', r.investing_sectors],
+    ['Website', r.website_url, true],
+    ['LinkedIn', r.corporate_linkedin_url, true],
+    ['LinkedIn Source', r.linkedin_source],
+    ['Corporate Email', r.corporate_email],
+    ['Email Source', r.corp_email_source],
+    ['Location', [r.hq_city, r.hq_state, r.hq_country].filter(Boolean).join(', ')],
+    ['Contact', r.contact_name],
+    ['Title', r.contact_title],
+    ['Contact LinkedIn', r.contact_linkedin, true],
+    ['Contact Email', r.contact_email],
+    ['Email Confidence', r.email_confidence],
+    ['Recent Activity', r.recent_activity],
+    ['Activity Date', r.activity_date],
+    ['Activity Source', r.activity_source_url, true],
+    ['Key Investments', r.key_investments],
+    ['Confidence', r.confidence_score ? r.confidence_score + '%' : ''],
+    ['Completeness', r.data_completeness_score ? r.data_completeness_score + '%' : ''],
+  ].filter(f => f[1]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 modal-overlay p-4"
+         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-card bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto border border-hunter/10">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-extrabold text-hunter-darker">{r.family_office_name || 'Unknown'}</h2>
+            {r.entity_type && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-hunter bg-nyanza px-2 py-0.5 rounded-full mt-1 inline-block">
+                {r.entity_type}
+              </span>
+            )}
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-nyanza hover:bg-hunter hover:text-white text-hunter-dark flex items-center justify-center transition-all text-lg font-bold">
+            &times;
+          </button>
+        </div>
+        <div className="space-y-2">
+          {fields.map((f, i) => (
+            <div key={i} className="flex gap-3 py-1.5 border-b border-nyanza-200/60 last:border-0">
+              <span className="text-[11px] text-sage font-semibold min-w-[110px] flex-shrink-0 uppercase tracking-wider">{f[0]}</span>
+              {f[2] ? (
+                <a href={f[1]} target="_blank" rel="noopener"
+                   className="text-hunter hover:text-hunter-dark text-xs underline underline-offset-2 break-all">{f[1]}</a>
+              ) : (
+                <span className="text-hunter-darker text-xs leading-relaxed">{f[1]}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Score bars */}
+        {(r.confidence_score || r.data_completeness_score) && (
+          <div className="mt-5 pt-4 border-t border-nyanza-200 grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold mb-1">
+                <span className="text-sage">Confidence</span>
+                <span className="text-hunter">{r.confidence_score || 0}%</span>
+              </div>
+              <div className="h-2 bg-nyanza rounded-full overflow-hidden">
+                <div className="h-full bg-hunter rounded-full transition-all duration-700" style={{ width: `${r.confidence_score || 0}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold mb-1">
+                <span className="text-sage">Completeness</span>
+                <span className="text-emerald-600">{r.data_completeness_score || 0}%</span>
+              </div>
+              <div className="h-2 bg-nyanza rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${r.data_completeness_score || 0}%` }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Chat Input ─────────────────────────────────────────── */
+function ChatInput({ onSend, disabled }) {
+  const [value, setValue] = useState('');
+  const inputRef = useRef(null);
+
+  const handleSend = () => {
+    const q = value.trim();
+    if (!q || disabled) return;
+    onSend(q);
+    setValue('');
+  };
+
+  useEffect(() => { if (!disabled && inputRef.current) inputRef.current.focus(); }, [disabled]);
+
+  return (
+    <div className="sticky bottom-0 z-30 bg-gradient-to-t from-nyanza via-nyanza to-nyanza/80 pt-3 pb-4 px-5">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex gap-2 items-end bg-white rounded-2xl shadow-lg shadow-hunter/8 border border-hunter/10 p-1.5 transition-shadow focus-within:shadow-xl focus-within:shadow-hunter/12 focus-within:border-hunter/20">
+          <input ref={inputRef} type="text" value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            disabled={disabled}
+            placeholder="Ask about family offices..."
+            className="flex-1 bg-transparent px-3 py-2.5 text-sm text-hunter-darker placeholder-sage/50 border-none focus:ring-0 font-medium disabled:opacity-50" />
+          <button onClick={handleSend} disabled={disabled || !value.trim()}
+            className="btn-primary w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-30 disabled:transform-none disabled:shadow-none">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            </svg>
+          </button>
+        </div>
+        <p className="text-center text-[9px] text-sage/40 mt-2 font-medium">
+          Built for Falcon Scaling × PolarityIQ Assessment · Powered by GPT-4o-mini + Qdrant
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── App ─────────────────────────────────────────────────── */
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [health, setHealth] = useState('connecting');
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const chatEndRef = useRef(null);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  // Health check
+  useEffect(() => {
+    fetch(API + '/api/health').then(r => r.json())
+      .then(d => setHealth(d.status === 'healthy' ? 'healthy' : 'unhealthy'))
+      .catch(() => setHealth('offline'));
+  }, []);
+
+  // Load stats
+  useEffect(() => {
+    fetch(API + '/api/stats').then(r => r.json()).then(setStats).catch(() => {});
+  }, []);
+
+  // Escape to close modal
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setSelectedRecord(null); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const handleSend = async (question) => {
+    const userMsg = { role: 'user', content: question, timestamp: Date.now() };
+    setMessages(prev => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      const r = await fetch(API + '/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, top_k: 15 }),
+      });
+      const d = await r.json();
+      const aiMsg = { role: 'assistant', content: d.answer, records: d.records || [], timestamp: Date.now() };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (e) {
+      const errMsg = { role: 'assistant', content: 'Failed to query: ' + e.message, error: true, timestamp: Date.now() };
+      setMessages(prev => [...prev, errMsg]);
+    }
+    setLoading(false);
+  };
+
+  const hasMessages = messages.length > 0;
+
+  return (
+    <div className="flex flex-col h-screen font-jakarta">
+      <Navbar health={health} />
+
+      <main className={`flex-1 overflow-y-auto ${hasMessages ? 'pb-4' : ''}`}>
+        {!hasMessages ? (
+          <WelcomeScreen stats={stats} onPromptClick={handleSend} />
+        ) : (
+          <div className="py-4">
+            {messages.map((msg, i) => (
+              <ChatMessage key={i} message={msg} onViewDetail={setSelectedRecord} />
+            ))}
+            {loading && <TypingIndicator />}
+            <div ref={chatEndRef} />
+          </div>
+        )}
+      </main>
+
+      <ChatInput onSend={handleSend} disabled={loading} />
+
+      {selectedRecord && <DetailModal record={selectedRecord} onClose={() => setSelectedRecord(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

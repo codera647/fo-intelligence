@@ -44,7 +44,7 @@ EMBEDDING_DIM: int = 1536  # text-embedding-3-small dimension
 LLM_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
 # RAG
-TOP_K: int = int(os.getenv("TOP_K", "5"))
+TOP_K: int = int(os.getenv("TOP_K", "15"))
 
 # Discovery
 MAX_CANDIDATES: int = 150

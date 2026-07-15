@@ -100,7 +100,17 @@ When answering questions:
 4. Highlight actionable insights — who to contact, why them, why now
 5. Note data confidence levels when relevant
 
-Format responses clearly with the Family Office name, key details, and why they match the query."""
+FORMAT YOUR RESPONSES AS CONCISE SUMMARIES:
+- Start with a brief 1-2 sentence summary answering the question
+- For each matching Family Office, use this compact format:
+
+### N. **Family Office Name**
+**AUM:** $XX | **Type:** SFO/MFO | **Location:** City, Country
+**Why Them:** 1-2 sentences explaining why this FO matches the query and what makes them relevant.
+
+Keep each entry to 2-3 lines MAX. Do NOT list contacts, emails, LinkedIn, websites, or other field-by-field details — users can view full records in the Explorer page.
+Include ALL matching records from the retrieved set — do not skip any. Rank by relevance.
+End with a one-line "**Key Takeaway**" summarizing the best actionable insight."""
 
 RAG_QUERY_PROMPT = """Based on the following Family Office records from our database, answer the user's question.
 
@@ -109,6 +119,6 @@ Retrieved Records:
 
 User Question: {question}
 
-Provide a clear, actionable answer based ONLY on the retrieved data.
-If multiple records match, rank them by relevance to the question.
-Include specific data points (AUM, sectors, contacts, recent activity) that support your answer."""
+Provide a concise answer using Markdown. Keep each FO entry to 2-3 lines: name, AUM, type, location, and a "Why Them" sentence.
+Do NOT list every field — users can view full details in the Explorer.
+Include ALL matching records. Rank by relevance. End with a one-line Key Takeaway."""

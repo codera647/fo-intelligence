@@ -1,9 +1,8 @@
 services:
   - type: web
     name: fo-intelligence
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    runtime: docker
+    plan: free
     envVars:
       - key: OPENAI_API_KEY
         sync: false
@@ -18,6 +17,4 @@ services:
       - key: LLM_MODEL
         value: gpt-4o-mini
       - key: TOP_K
-        value: 5
-      - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "5"

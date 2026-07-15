@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+.env
+.git
+data/pipeline/
+data/raw/
+data/processed/*.xlsx
+*.backup.json
+*.pre_tag_backup.json
+venv/
+.venv/
+node_modules/
