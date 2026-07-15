@@ -32,6 +32,33 @@ W_COMPLETENESS = 10
 
 # ── Helper predicates ────────────────────────────────────────────────
 
+PLACEHOLDER_NAMES = {
+    "john doe", "jane doe", "full name", "name", "first last",
+    "team member", "contact person", "unknown", "n/a",
+    "leadership team", "management team", "executive team",
+}
+
+
+def _is_placeholder_contact(name: Optional[str]) -> bool:
+    """Check if contact name is a placeholder or company-as-person."""
+    if not name:
+        return True
+    name_lower = name.strip().lower()
+    if name_lower in PLACEHOLDER_NAMES:
+        return True
+    company_indicators = [
+        "leadership team", "management team", "executive team",
+        "family office", "holdings", " llc", " inc", " ltd",
+        " group", " capital", " partners", " management",
+        " trust company", " advisors",
+    ]
+    if any(ind in name_lower for ind in company_indicators):
+        return True
+    if len(name.strip().split()) < 2:
+        return True
+    return False
+
+
 def _has_valid_email(email: Optional[str]) -> bool:
     """Check if string looks like a real email (not placeholder)."""
     if not email or not isinstance(email, str):
@@ -44,7 +71,12 @@ def _has_valid_email(email: Optional[str]) -> bool:
         "example.com", "test.com", "placeholder", "noreply",
         "no-reply", "donotreply", "email.com",
     ]
-    return not any(p in email for p in placeholder_patterns)
+    if any(p in email for p in placeholder_patterns):
+        return False
+    # Reject malformed (stray parens, brackets)
+    if re.search(r'[)(}\]{\[\s]', email.split("@")[0]):
+        return False
+    return True
 
 
 def _has_valid_linkedin(url: Optional[str]) -> bool:
@@ -260,26 +292,36 @@ def _pick_best_contact(rec: dict) -> dict:
     if not team:
         return {}
 
+    # Filter out placeholder contacts before ranking
+    real_team = [m for m in team if not _is_placeholder_contact(m.get("name"))]
+    if not real_team:
+        # All contacts were placeholders — return empty
+        return {}
+
     def _contact_rank(member: dict) -> tuple:
         has_em = 1 if _has_valid_email(member.get("email")) else 0
         has_li = 1 if _has_valid_linkedin(member.get("linkedin_url")) else 0
         is_senior = 1 if _is_senior_title(member.get("title")) else 0
         return (has_em + has_li, has_em, is_senior, has_li)
 
-    ranked = sorted(team, key=_contact_rank, reverse=True)
+    ranked = sorted(real_team, key=_contact_rank, reverse=True)
     best = dict(ranked[0])
 
     # Determine email confidence
     email = best.get("email")
     if _has_valid_email(email):
-        # Check if pattern-inferred or directly found
-        contact_source = rec.get("contact_source", "")
-        if contact_source == "TavilySearch":
-            best["email_confidence"] = "Medium"
-            best["email_source"] = "Pattern-inferred via Tavily"
+        # Preserve existing confidence if already set (e.g. from MX verification)
+        existing_conf = best.get("email_confidence", "")
+        if existing_conf in ("High", "Verified"):
+            pass  # Keep the higher confidence
         else:
-            best["email_confidence"] = "Medium"
-            best["email_source"] = "Discovered"
+            contact_source = rec.get("contact_source", "")
+            if contact_source == "TavilySearch":
+                best["email_confidence"] = "Medium"
+                best["email_source"] = best.get("email_source") or "Pattern-inferred via Tavily"
+            else:
+                best["email_confidence"] = "Medium"
+                best["email_source"] = best.get("email_source") or "Discovered"
     else:
         # Try extracted_emails from website crawl as fallback
         extracted = rec.get("extracted_emails") or []
@@ -441,12 +483,39 @@ def map_to_export_schema(rec: dict) -> dict:
     ]
     out["other_socials"] = " | ".join(real_socials[:5]) if real_socials else None
 
-    # HQ parsing
+    # HQ parsing — use _resolved_country from enrichment_boost if available
     hq = rec.get("headquarters") or rec.get("location") or ""
     hq_parts = [p.strip() for p in hq.split(",")]
     out["hq_city"] = hq_parts[0] if len(hq_parts) >= 1 and hq_parts[0] else None
     out["hq_state"] = hq_parts[1] if len(hq_parts) >= 2 else None
-    out["hq_country"] = hq_parts[2] if len(hq_parts) >= 3 else "United States"
+
+    # Country: prefer resolved (from enrichment_boost), then explicit 3rd part, then smart default
+    resolved_country = rec.get("_resolved_country")
+    if resolved_country:
+        out["hq_country"] = resolved_country
+    elif len(hq_parts) >= 3 and hq_parts[2]:
+        out["hq_country"] = hq_parts[2]
+    else:
+        # Only default to US if location looks domestic (has US state abbreviation or "United States")
+        state = (out.get("hq_state") or "").strip()
+        us_states = {
+            "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN",
+            "IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV",
+            "NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN",
+            "TX","UT","VT","VA","WA","WV","WI","WY","DC",
+            "Alabama","Alaska","Arizona","Arkansas","California","Colorado",
+            "Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois",
+            "Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland",
+            "Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana",
+            "Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York",
+            "North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania",
+            "Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah",
+            "Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming",
+        }
+        if state in us_states or "united states" in hq.lower():
+            out["hq_country"] = "United States"
+        else:
+            out["hq_country"] = None  # Don't assume US for ambiguous locations
 
     # ── Tier 2: Principal Intelligence ────────────────────────────────
     out["contact_name"] = rec.get("best_contact_name")
