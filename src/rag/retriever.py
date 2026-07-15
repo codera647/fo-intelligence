@@ -38,18 +38,31 @@ def search_family_offices(
     # Build Qdrant filter from structured filters
     qdrant_filter = _build_filter(filters) if filters else None
 
-    # Search
-    results = client.search(
-        collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
-        query_filter=qdrant_filter,
-        limit=top_k,
-        with_payload=True,
-    )
+    # Search — compatible with qdrant-client v1 and v2
+    try:
+        # v1 API
+        results = client.search(
+            collection_name=COLLECTION_NAME,
+            query_vector=query_vector,
+            query_filter=qdrant_filter,
+            limit=top_k,
+            with_payload=True,
+        )
+        hits = results
+    except AttributeError:
+        # v2 API — .search() removed, use .query_points()
+        response = client.query_points(
+            collection_name=COLLECTION_NAME,
+            query=query_vector,
+            query_filter=qdrant_filter,
+            limit=top_k,
+            with_payload=True,
+        )
+        hits = response.points
 
     # Format results
     formatted = []
-    for hit in results:
+    for hit in hits:
         record = dict(hit.payload)
         record.pop("_embedded_text", None)  # Remove internal field
         record["_similarity_score"] = round(hit.score, 4)
