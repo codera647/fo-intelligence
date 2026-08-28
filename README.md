@@ -182,6 +182,4 @@ fo-intelligence/
 - Implement multi-agent / cross-source consensus verification
 - Add scheduled re-crawling for fresh activity signals
 
-## License
 
-Assessment project — not for production use.
